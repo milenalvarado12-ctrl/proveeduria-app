@@ -1,34 +1,75 @@
 /**
  * User repository
  * PB-6: Registrar Usuarios y Roles
- * TODO: Implementar consultas a base de datos (PB-20/PB-21)
+ * Usa datos dummy en memoria (temporal hasta que PB-20 complete conexión BD)
  */
 
-// eslint-disable-next-line no-unused-vars
-export async function findByEmail(_email) {
-  // TODO: Implementar consulta SQL por email
-  // SELECT * FROM users WHERE email = @email
-  return null;
+import bcrypt from 'bcryptjs';
+import * as usersData from './usersData.js';
+
+/**
+ * Busca un usuario por email
+ */
+export async function findByEmail(email) {
+  return usersData.findUserByEmail(email);
 }
 
-// eslint-disable-next-line no-unused-vars
-export async function create(_userData) {
-  // TODO: Implementar inserción SQL
-  // INSERT INTO users (email, password_hash, role, ...) VALUES (...)
-  // Retornar el usuario creado con su ID
-  return null;
+/**
+ * Crea un nuevo usuario con password hasheado
+ * @param {object} userData - { email, password, role, nombre? }
+ */
+export async function create(userData) {
+  const { email, password, role, nombre } = userData;
+
+  // Hash de la contraseña
+  const password_hash = await bcrypt.hash(password, 10);
+
+  const newUser = usersData.addUser({
+    email,
+    password_hash,
+    role,
+    nombre: nombre || email.split('@')[0], // Default nombre desde email
+    activo: true,
+  });
+
+  return newUser;
 }
 
-// eslint-disable-next-line no-unused-vars
-export async function findById(_id) {
-  // TODO: Implementar consulta SQL por ID
-  // SELECT * FROM users WHERE id = @id
-  return null;
+/**
+ * Busca un usuario por ID
+ */
+export async function findById(id) {
+  return usersData.findUserById(id);
 }
 
-// eslint-disable-next-line no-unused-vars
-export async function findAll(_filters = {}) {
-  // TODO: Implementar consulta SQL para listar usuarios
-  // Con filtros opcionales (role, estado activo/inactivo, etc.)
-  return [];
+/**
+ * Lista todos los usuarios con filtros opcionales
+ */
+export async function findAll(filters = {}) {
+  let users = usersData.getAllUsers();
+
+  // Filtrar por rol si se especifica
+  if (filters.role) {
+    users = users.filter(u => u.role === filters.role);
+  }
+
+  // Filtrar por estado activo/inactivo
+  if (filters.activo !== undefined) {
+    users = users.filter(u => u.activo === filters.activo);
+  }
+
+  return users;
+}
+
+/**
+ * Actualiza un usuario existente
+ */
+export async function update(id, updates) {
+  // Si se actualiza la contraseña, hashearla
+  if (updates.password) {
+    updates.password_hash = await bcrypt.hash(updates.password, 10);
+    delete updates.password;
+  }
+
+  return usersData.updateUser(id, updates);
 }
