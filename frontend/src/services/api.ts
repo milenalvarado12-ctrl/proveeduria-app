@@ -32,8 +32,20 @@ async function request<T>(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Error desconocido' }));
-    throw new Error(error.error || `HTTP error! status: ${response.status}`);
+    let errorMessage = `HTTP error! status: ${response.status}`;
+    try {
+      const error = await response.json();
+      errorMessage = error.error || error.message || errorMessage;
+    } catch {
+      // Si no es JSON, intentar leer como texto
+      try {
+        const text = await response.text();
+        errorMessage = text || errorMessage;
+      } catch {
+        // Si todo falla, usar el mensaje por defecto
+      }
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();
